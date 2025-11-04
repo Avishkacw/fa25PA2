@@ -98,7 +98,36 @@ int buildEncodingTree(int nextFree) {
     //    - Set left/right pointers
     //    - Push new parent index back into the heap
     // 4. Return the index of the last remaining node (root)
-    return -1; // placeholder
+    if (nextFree == 0) return -1; // placeholder
+    if (nextFree == 1) return 0;
+
+    MinHeap heap;
+
+    //push all leaf indices into heap
+    for (int i = 0; i < nextFree; ++i) {
+        heap.push(i, weightArr);
+    }
+
+    //combine smallest two untill one root remains
+    while (heap.size > 1) {
+        int left = heap.pop(weightArr);
+        int right = heap.pop(weightArr);
+
+        if (nextFree >= MAX_NODES) {
+            cerr << "Error: too many nodes.\n";
+            exit(1);
+        }
+        int parent = nextFree++;
+        charArr[parent] = '\0';//internal node
+        leftArr[parent] = left;
+        rightArr[parent] = right;
+        weightArr[parent] = weightArr[left] + weightArr[right];
+
+        heap.push(parent, weightArr);
+    }
+
+    //last one left is the root
+    return heap.pop(weightArr);
 }
 
 // Step 4: Use an STL stack to generate codes
@@ -107,6 +136,33 @@ void generateCodes(int root, string codes[]) {
     // Use stack<pair<int, string>> to simulate DFS traversal.
     // Left edge adds '0', right edge adds '1'.
     // Record code when a leaf node is reached.
+    for (int i = 0; i < 26; ++i) codes[i] = "";
+
+    if (root == -1) return;
+
+    bool singleLeaf = (leftArr[root] == -1 && rightArr[root] == -1);
+    stack<pair<int, string>> st;
+    st.push({root, ""});
+
+    while (!st.empty()) {
+        auto node = st.top();
+        st.pop();
+
+        int curr = node.first;
+        string path = node.second;
+
+        bool isLeaf = (leftArr[curr] == -1 && rightArr[curr] == -1);
+        if (isLeaf) {
+            char c = charArr[curr];
+            if (c >= 'a' && c <= 'z') {
+                if (path.empty() && singleLeaf) path = "0";
+                codes[c - 'a'] = path;
+            }
+        }else {
+            if (rightArr[curr] != -1) st.push({rightArr[curr], path + "1"});
+            if (leftArr[curr]  != -1) st.push({leftArr[curr],  path + "0"});
+        }
+    }
 }
 
 // Step 5: Print table and encoded message
